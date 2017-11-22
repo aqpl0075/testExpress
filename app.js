@@ -23,6 +23,11 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
+//Global vars
+app.use(function(req, res, next){
+    res.locals.errors = null;
+    next();
+});
 /*
 //static resource file
 //Set static path -- this overwrite from app
@@ -93,12 +98,30 @@ app.post('/users/add', function(req, res){
 app.post('/users/add', [
     check('first_name')
         .isLength({ min: 5 })
-        .withMessage('First Name is required')
+        .withMessage('First Name is required'),
+    check('last_name')
+        .isLength({ min: 5 })
+        .withMessage('Last Name is required'),
+    check('email')
+        .isLength({ min: 5 })
+        .withMessage('Email is required')
 ], (req, res, next) => {
-    var errors = validationResult(req);
+    var theErrors = validationResult(req);
     
-    if (!errors.isEmpty()) {
-      console.log(errors.mapped());
+    if (!theErrors.isEmpty()) {
+        res.render('index', {
+            title: 'Customers',
+            users: users,
+            errors: theErrors.mapped()
+        });
+        
+        // console.log(theErrors.mapped());
+        // var aTest = theErrors.mapped();
+        // Object.keys(aTest).forEach(function(key,index){
+        //     console.log('key is ' + key);
+        //     console.log('index is ' + index);
+        //     console.log('Level 2 key is ' + aTest[key].msg);
+        // });
     }
     else {
         var newUser = {
