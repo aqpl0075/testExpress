@@ -2,6 +2,9 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var path = require('path'); //file path
 var { check, validationResult } = require('express-validator/check');
+var mongojs = require('mongojs');
+var db = mongojs('customerapp', ['users']);
+var ObjectId = mongojs.ObjectId;
 var app = express();
 
 /*
@@ -23,16 +26,15 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
+//static resource file
+//Set static path -- this overwrite from app
+app.use(express.static(path.join(__dirname, 'public')));
+
 //Global vars
 app.use(function(req, res, next){
     res.locals.errors = null;
     next();
 });
-/*
-//static resource file
-//Set static path -- this overwrite from app
-app.use(express.static(path.join(__dirname, 'public')));
-*/
 
 //json data for res.json
 var people = [
@@ -76,9 +78,13 @@ app.get('/', function(req, res){
     //res.json(people);
     //res.send('Hello World!');
 
-    res.render('index', {
-        title: 'Customers',
-        users: users
+    db.users.find(function (err, docs) {
+        console.log(docs);
+
+        res.render('index', {
+            title: 'Customers',
+            users: docs
+        });
     });
 });
 
@@ -97,10 +103,10 @@ app.post('/users/add', function(req, res){
 //Use Express validator
 app.post('/users/add', [
     check('first_name')
-        .isLength({ min: 5 })
+        .isLength({ min: 2 })
         .withMessage('First Name is required'),
     check('last_name')
-        .isLength({ min: 5 })
+        .isLength({ min: 2 })
         .withMessage('Last Name is required'),
     check('email')
         .isLength({ min: 5 })
@@ -129,11 +135,28 @@ app.post('/users/add', [
             last_name: req.body.last_name,
             email: req.body.email
         }
+        
+        db.users.insert(newUser, function(err, result){
+            if(err){
+                console.log(err);
+            }
+            res.redirect('/');
+        });
+
         console.log(req.body.first_name);
         console.log(newUser);
     }
   });
 
+app.delete('/users/delete/:id', function(req, res){
+    //console.log(req.params.id);
+    db.users.remove({_id: ObjectId(req.params.id)}, function(err, result){
+        if(err){
+            console.log(err);
+        }
+        res.redirect('/');
+    });
+});
 
 app.listen(3000, function(){
     console.log('Server started on port 3000...');
